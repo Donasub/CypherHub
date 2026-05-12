@@ -7,16 +7,16 @@ You type a message and a keyword. The app produces ciphertext like this:
 Anyone with the same keyword can paste that into the decode panel and recover the original message. Anyone without it sees the format pattern but recovers shifted gibberish.
 The cipher has two layers:
 
-Vigenère shift — each letter is bumped forward in the alphabet by an amount taken from the keyword. The keyword cycles for messages longer than it is.
-Zigzag formatting — each character is then rendered in one of three formats (8-bit binary, decimal ASCII, or the character itself), rotating through them in a bouncing pattern that repeats every six positions.
+Vigenère shift each letter is bumped forward in the alphabet by an amount taken from the keyword. The keyword cycles for messages longer than it is.
+Zigzag formatting each character is then rendered in one of three formats (8-bit binary, decimal ASCII, or the character itself), rotating through them in a bouncing pattern that repeats every six positions.
 
-Neither piece is hard on its own. Stacked, they're enough for puzzles, low-stakes notes, and party trivia. They are not enough for protecting anything important — see the security caveat below.
+Neither piece is hard on its own. Stacked, they're enough for puzzles, low-stakes notes, and party trivia. They are not enough for protecting anything important see the security caveat below.
 Run it
 Open zigzag-cipher.html in any modern browser. Nothing to install. No build step. No backend.
 
-To share — send someone the URL or a copy of the file. The page loads with a working hello / wave example so they can see the cipher running immediately.
-To self-host — serve the file from any static host (GitHub Pages, Netlify, S3, python -m http.server).
-To verify — open the browser console. You should see Zigzag self-tests: all 5 pass.
+To share send someone the URL or a copy of the file. The page loads with a working hello / wave example so they can see the cipher running immediately.
+To self-host serve the file from any static host (GitHub Pages, Netlify, S3, python -m http.server).
+To verify open the browser console. You should see Zigzag self-tests: all 5 pass.
 
 The cipher
 Three character formats
