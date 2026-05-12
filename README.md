@@ -1,5 +1,6 @@
 # CypherHub
 A small browser-based cipher for trading messages with a friend who shares a keyword. Pairs a Vigenère shift with a zigzag rotation through binary, decimal, and character formats. No backend, nothing leaves your tab
+
 What it does
 You type a message and a keyword. The app produces ciphertext like this:
 01100100 | 101 | g | p | 107
