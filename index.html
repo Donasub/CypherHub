@@ -1,733 +1,1079 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>Zigzag — a small cipher for shared secrets</title>
+<title>Donas' Zigzag a cipher for shared secrets</title>
 <meta name="description" content="A puzzle-grade cipher you can run on two friends. Shift, format, send." />
-<meta name="color-scheme" content="light dark" />
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
 
 <style>
-  /* ---------- tokens ---------- */
-  :root {
-    --bg:        #faf9f6;
-    --surface:   #ffffff;
-    --ink:       #14130f;
-    --ink-2:     #3a3833;
-    --muted:     #76746d;
-    --rule:      #e6e3dc;
-    --rule-2:    #efece5;
-    --accent:    #14130f;
+/* ============================================================
+   TOKENS
+   ============================================================ */
+:root {
+  --bg:         #06060f;
+  --bg-2:       #09091a;
+  --surface:    #0e0e1e;
+  --surface-2:  #141428;
+  --border:     #1c1c38;
+  --border-2:   #282848;
 
-    --bin-bg:    #eeedfe;
-    --bin-fg:    #3c3489;
-    --dec-bg:    #e1f5ee;
-    --dec-fg:    #085041;
-    --chr-bg:    #faece7;
-    --chr-fg:    #712b13;
+  --ink:        #eae6ff;
+  --ink-2:      #9990c8;
+  --ink-3:      #5c5880;
 
-    --shadow:    0 1px 0 rgba(20,19,15,.04);
-    --radius:    10px;
-    --radius-lg: 14px;
+  --enc:        #7c5af0;
+  --enc-2:      #a58bff;
+  --enc-glow:   rgba(124,90,240,0.28);
+  --enc-bg:     rgba(124,90,240,0.09);
 
-    --ui:   "Geist", ui-sans-serif, system-ui, -apple-system, sans-serif;
-    --mono: "Geist Mono", ui-monospace, "JetBrains Mono", "SF Mono", Menlo, monospace;
-  }
+  --deco:       #0fb886;
+  --deco-2:     #2ddea5;
+  --deco-glow:  rgba(15,184,134,0.28);
+  --deco-bg:    rgba(15,184,134,0.09);
 
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg:      #0f0e0c;
-      --surface: #161513;
-      --ink:     #f3efe6;
-      --ink-2:   #cfcabd;
-      --muted:   #8a877d;
-      --rule:    #26241f;
-      --rule-2:  #1d1c18;
-      --accent:  #f3efe6;
+  --bin-bg:     #100e4a;
+  --bin-fg:     #818cf8;
+  --dec-bg:     #072b1f;
+  --dec-fg:     #34d399;
+  --chr-bg:     #2c0f04;
+  --chr-fg:     #fb923c;
 
-      --bin-bg:  #2a2473;
-      --bin-fg:  #eeedfe;
-      --dec-bg:  #073d31;
-      --dec-fg:  #e1f5ee;
-      --chr-bg:  #5a2010;
-      --chr-fg:  #faece7;
+  --radius:     10px;
+  --radius-lg:  16px;
 
-      --shadow:  0 1px 0 rgba(0,0,0,.4);
-    }
-  }
+  --ui:   "Syne", ui-sans-serif, system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
 
-  [data-theme="light"] {
-    --bg: #faf9f6; --surface:#ffffff; --ink:#14130f; --ink-2:#3a3833; --muted:#76746d;
-    --rule:#e6e3dc; --rule-2:#efece5; --accent:#14130f;
-    --bin-bg:#eeedfe; --bin-fg:#3c3489;
-    --dec-bg:#e1f5ee; --dec-fg:#085041;
-    --chr-bg:#faece7; --chr-fg:#712b13;
-    --shadow: 0 1px 0 rgba(20,19,15,.04);
-  }
-  [data-theme="dark"] {
-    --bg:#0f0e0c; --surface:#161513; --ink:#f3efe6; --ink-2:#cfcabd; --muted:#8a877d;
-    --rule:#26241f; --rule-2:#1d1c18; --accent:#f3efe6;
-    --bin-bg:#2a2473; --bin-fg:#eeedfe;
-    --dec-bg:#073d31; --dec-fg:#e1f5ee;
-    --chr-bg:#5a2010; --chr-fg:#faece7;
-    --shadow: 0 1px 0 rgba(0,0,0,.4);
-  }
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
 
-  /* ---------- base ---------- */
-  * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; }
-  body {
-    background: var(--bg);
-    color: var(--ink);
-    font-family: var(--ui);
-    font-feature-settings: "ss01", "cv11";
-    font-size: 15px;
-    line-height: 1.5;
-    -webkit-font-smoothing: antialiased;
-    text-rendering: optimizeLegibility;
-    min-height: 100vh;
-    min-height: 100dvh;
-  }
+[data-theme="light"] {
+  --bg:         #f6f4ff;
+  --bg-2:       #f0eeff;
+  --surface:    #ffffff;
+  --surface-2:  #f4f2ff;
+  --border:     #ddd8ff;
+  --border-2:   #c8c0ff;
 
-  .wrap {
-    max-width: 760px;
-    margin: 0 auto;
-    padding: 28px 20px 96px;
-  }
-  @media (min-width: 640px) {
-    .wrap { padding: 56px 32px 120px; }
-  }
+  --ink:        #130e38;
+  --ink-2:      #4a3f88;
+  --ink-3:      #8a7fba;
 
-  /* ---------- header ---------- */
-  .head {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 16px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid var(--rule);
-    margin-bottom: 28px;
-  }
-  .head h1 {
-    margin: 0;
-    font-size: 17px;
-    font-weight: 500;
-    letter-spacing: -0.005em;
-  }
-  .head h1 .dot {
-    display: inline-block;
-    width: 6px; height: 6px;
-    background: var(--ink);
-    margin-right: 8px;
-    transform: translateY(-2px);
-    border-radius: 1px;
-  }
-  .head .meta {
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--muted);
-    letter-spacing: 0.02em;
-  }
-  .theme-btn {
-    background: transparent;
-    color: var(--muted);
-    border: 1px solid var(--rule);
-    border-radius: 6px;
-    padding: 4px 8px;
-    font-family: var(--mono);
-    font-size: 11px;
-    cursor: pointer;
-    letter-spacing: 0.02em;
-  }
-  .theme-btn:hover { color: var(--ink); border-color: var(--ink-2); }
+  --enc:        #6040e0;
+  --enc-2:      #7855e8;
+  --enc-glow:   rgba(96,64,224,0.15);
+  --enc-bg:     rgba(96,64,224,0.07);
 
-  /* ---------- intro ---------- */
-  .lede {
-    font-size: 22px;
-    line-height: 1.35;
-    letter-spacing: -0.015em;
-    color: var(--ink);
-    margin: 0 0 12px;
-    font-weight: 400;
-  }
-  @media (min-width: 640px) {
-    .lede { font-size: 26px; }
-  }
-  .lede em {
-    font-style: normal;
-    background: var(--rule-2);
-    padding: 0 4px;
-    border-radius: 3px;
-  }
-  .sub {
-    color: var(--muted);
-    font-size: 14px;
-    margin: 0 0 28px;
-    max-width: 56ch;
-  }
+  --deco:       #0a9970;
+  --deco-2:     #0dbb88;
+  --deco-glow:  rgba(10,153,112,0.15);
+  --deco-bg:    rgba(10,153,112,0.07);
 
-  /* ---------- collapsible explainer ---------- */
-  details.explainer {
-    margin: 0 0 36px;
-    border: 1px solid var(--rule);
-    border-radius: var(--radius-lg);
-    background: var(--surface);
-    overflow: hidden;
-  }
-  details.explainer > summary {
-    list-style: none;
-    cursor: pointer;
-    padding: 14px 18px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    user-select: none;
-    font-size: 14px;
-    color: var(--ink);
-  }
-  details.explainer > summary::-webkit-details-marker { display: none; }
-  details.explainer > summary::after {
-    content: "+";
-    font-family: var(--mono);
-    font-size: 18px;
-    color: var(--muted);
-    width: 18px;
-    text-align: center;
-    transition: transform .2s ease;
-  }
-  details.explainer[open] > summary::after {
-    content: "−";
-  }
-  details.explainer > summary:hover { background: var(--rule-2); }
-  .explainer-body {
-    padding: 4px 18px 20px;
-    border-top: 1px solid var(--rule);
-    font-size: 14px;
-    color: var(--ink-2);
-  }
-  .explainer-body h4 {
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin: 22px 0 8px;
-    color: var(--muted);
-    font-weight: 500;
-  }
-  .explainer-body p { margin: 0 0 10px; }
-  .explainer-body code {
-    font-family: var(--mono);
-    font-size: 12.5px;
-    background: var(--rule-2);
-    padding: 1px 5px;
-    border-radius: 3px;
-  }
+  --bin-bg:     #eeedfe;
+  --bin-fg:     #3c3489;
+  --dec-bg:     #e1f5ee;
+  --dec-fg:     #085041;
+  --chr-bg:     #faece7;
+  --chr-fg:     #712b13;
+}
 
-  /* ---------- section ---------- */
-  section {
-    background: var(--surface);
-    border: 1px solid var(--rule);
-    border-radius: var(--radius-lg);
-    padding: 20px;
-    margin-bottom: 20px;
-    box-shadow: var(--shadow);
-  }
-  @media (min-width: 640px) {
-    section { padding: 24px 26px; }
-  }
-  .section-head {
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
-    margin-bottom: 14px;
-  }
-  .section-num {
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--muted);
-    letter-spacing: 0.04em;
-  }
-  .section-title {
-    font-size: 13px;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--ink);
-    font-weight: 500;
-  }
+/* ============================================================
+   BASE
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--ui);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  transition: background 0.3s, color 0.3s;
+}
 
-  /* ---------- form bits ---------- */
-  .field-label {
-    display: block;
-    font-family: var(--mono);
-    font-size: 10.5px;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    margin-bottom: 6px;
-  }
-  input[type="text"], textarea {
-    width: 100%;
-    background: transparent;
-    color: var(--ink);
-    border: 1px solid var(--rule);
-    border-radius: var(--radius);
-    padding: 12px 14px;
-    font-family: var(--mono);
-    font-size: 15px;
-    line-height: 1.5;
-    transition: border-color .15s ease, background .15s ease;
-    resize: vertical;
-  }
-  textarea { min-height: 88px; }
-  input[type="text"]:focus, textarea:focus {
-    outline: none;
-    border-color: var(--ink);
-    background: var(--bg);
-  }
-  input[type="text"]::placeholder, textarea::placeholder {
-    color: var(--muted);
-    opacity: 0.6;
-  }
+/* ============================================================
+   NAV
+   ============================================================ */
+.nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  height: 54px;
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  background: rgba(6,6,15,0.82);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--border);
+  transition: background 0.3s;
+}
+[data-theme="light"] .nav {
+  background: rgba(246,244,255,0.88);
+}
+.nav-inner {
+  max-width: 860px;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+  cursor: pointer;
+  background: none;
+  border: none;
+  font-family: var(--ui);
+  transition: opacity 0.15s;
+}
+.nav-logo:hover { opacity: 0.75; }
+.logo-gem {
+  width: 10px; height: 10px;
+  background: linear-gradient(135deg, var(--enc), var(--deco));
+  border-radius: 3px;
+  transform: rotate(45deg);
+  flex-shrink: 0;
+}
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.nav-meta {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--ink-3);
+  letter-spacing: 0.05em;
+}
+@media (max-width: 480px) { .nav-meta { display: none; } }
+.theme-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--ink-2);
+  border-radius: 7px;
+  padding: 5px 11px;
+  font-family: var(--mono);
+  font-size: 11px;
+  cursor: pointer;
+  letter-spacing: 0.05em;
+  transition: all 0.18s;
+}
+.theme-btn:hover { border-color: var(--enc); color: var(--enc-2); }
 
-  /* ---------- key strip ---------- */
-  .key-strip {
-    margin-top: 12px;
-    font-family: var(--mono);
-    font-size: 12px;
-    color: var(--ink-2);
-    overflow-x: auto;
-    white-space: nowrap;
-    padding-bottom: 4px;
-    -webkit-overflow-scrolling: touch;
-  }
-  .key-strip::-webkit-scrollbar { height: 4px; }
-  .key-strip::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 2px; }
-  .key-strip .kk {
-    display: inline-block;
-    padding: 3px 8px;
-    margin-right: 6px;
-    background: var(--rule-2);
-    border-radius: 4px;
-  }
-  .key-strip .kk b { font-weight: 500; color: var(--ink); }
-  .key-strip .kk span { color: var(--muted); margin-left: 4px; }
+/* ============================================================
+   HERO
+   ============================================================ */
+.hero {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 24px 64px;
+  position: relative;
+  overflow: hidden;
+  text-align: center;
+}
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 65% 55% at 15% 65%, rgba(124,90,240,0.14) 0%, transparent 68%),
+    radial-gradient(ellipse 50% 45% at 85% 35%, rgba(15,184,134,0.11) 0%, transparent 68%);
+  pointer-events: none;
+}
+/* Grid texture */
+.hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 44px 44px;
+  opacity: 0.28;
+  pointer-events: none;
+}
 
-  .nokey {
-    display: inline-block;
-    margin-top: 12px;
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--chr-fg);
-    background: var(--chr-bg);
-    padding: 4px 9px;
-    border-radius: 4px;
-    letter-spacing: 0.01em;
-  }
+.hero-inner {
+  max-width: 640px;
+  width: 100%;
+  position: relative;
+  z-index: 1;
+}
 
-  /* ---------- intermediate shift display ---------- */
-  .shift-row {
-    margin: 14px 0 14px;
-    font-family: var(--mono);
-    font-size: 12.5px;
-    color: var(--muted);
-    padding: 10px 12px;
-    border-left: 2px solid var(--rule);
-    background: var(--rule-2);
-    border-radius: 0 6px 6px 0;
-    word-break: break-all;
-  }
-  .shift-row .lbl {
-    display: block;
-    text-transform: uppercase;
-    font-size: 10px;
-    letter-spacing: 0.1em;
-    margin-bottom: 4px;
-  }
-  .shift-row .out {
-    color: var(--ink);
-    font-size: 14px;
-    letter-spacing: 0.04em;
-  }
-  .shift-row:focus-within {
-    border-left-color: var(--ink);
-    background: var(--surface);
-  }
-  .shift-row .lbl-hint {
-    text-transform: none;
-    letter-spacing: 0.01em;
-    font-size: 10.5px;
-    font-weight: 400;
-    color: var(--muted);
-    margin-left: 4px;
-    opacity: 0.85;
-  }
-  .shift-input {
-    display: block;
-    width: 100%;
-    margin: 0;
-    padding: 0;
-    background: transparent;
-    border: 0;
-    outline: 0;
-    resize: none;
-    overflow: hidden;
-    font-family: var(--mono);
-    font-size: 14px;
-    color: var(--ink);
-    letter-spacing: 0.04em;
-    line-height: 1.5;
-    word-break: break-all;
-    min-height: 1.5em;
-    caret-color: var(--ink);
-  }
-  .shift-input::placeholder {
-    color: var(--muted);
-    opacity: 0.45;
-  }
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--enc-2);
+  background: var(--enc-bg);
+  border: 1px solid rgba(124,90,240,0.25);
+  border-radius: 100px;
+  padding: 5px 14px;
+  margin-bottom: 30px;
+  animation: fadeUp 0.6s var(--ease) both;
+}
+.hero-badge-dot {
+  width: 5px; height: 5px;
+  background: var(--enc-2);
+  border-radius: 50%;
+  animation: pulse 2.5s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.7); }
+}
 
-  /* ---------- output ---------- */
-  .output-block {
-    position: relative;
-    background: var(--bg);
-    border: 1px solid var(--rule);
-    border-radius: var(--radius);
-    padding: 14px 14px 14px;
-    min-height: 64px;
-  }
-  .output-tokens {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 6px 4px;
-    font-family: var(--mono);
-    font-size: 14px;
-    line-height: 1.6;
-    word-break: break-all;
-  }
-  .token {
-    display: inline-flex;
-    align-items: center;
-    padding: 3px 9px;
-    border-radius: 5px;
-    position: relative;
-    letter-spacing: 0.02em;
-  }
-  .token::before {
-    content: attr(data-fmt);
-    font-size: 9px;
-    font-weight: 500;
-    margin-right: 6px;
-    opacity: 0.55;
-    letter-spacing: 0.05em;
-  }
-  .token.b { background: var(--bin-bg); color: var(--bin-fg); }
-  .token.d { background: var(--dec-bg); color: var(--dec-fg); }
-  .token.c { background: var(--chr-bg); color: var(--chr-fg); }
-  .token.err {
-    background: transparent;
-    color: var(--chr-fg);
-    border: 1px dashed var(--chr-fg);
-  }
-  .sep {
-    color: var(--muted);
-    opacity: 0.5;
-    user-select: none;
-  }
-  .empty-out {
-    color: var(--muted);
-    font-family: var(--mono);
-    font-size: 14px;
-  }
+.hero-title {
+  font-size: clamp(64px, 16vw, 112px);
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  line-height: 0.9;
+  margin-bottom: 22px;
+  background: linear-gradient(145deg, var(--ink) 15%, var(--enc-2) 52%, var(--deco-2) 88%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: fadeUp 0.7s var(--ease) 0.08s both;
+}
 
-  .recovered {
-    font-family: var(--mono);
-    font-size: 16px;
-    color: var(--ink);
-    letter-spacing: 0.01em;
-    word-break: break-word;
-    white-space: pre-wrap;
-  }
-  .recovered .q { color: var(--chr-fg); background: var(--chr-bg); padding: 0 4px; border-radius: 3px; }
+.hero-sub {
+  font-size: 15.5px;
+  color: var(--ink-2);
+  max-width: 44ch;
+  margin: 0 auto 48px;
+  line-height: 1.7;
+  animation: fadeUp 0.7s var(--ease) 0.16s both;
+}
 
-  .copy-row {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 10px;
-  }
-  .copy-btn {
-    background: transparent;
-    color: var(--muted);
-    border: 1px solid var(--rule);
-    border-radius: 6px;
-    padding: 6px 10px;
-    font-family: var(--mono);
-    font-size: 11.5px;
-    letter-spacing: 0.04em;
-    cursor: pointer;
-    transition: all .15s ease;
-  }
-  .copy-btn:hover { color: var(--ink); border-color: var(--ink-2); }
-  .copy-btn.copied { color: var(--dec-fg); border-color: var(--dec-fg); background: var(--dec-bg); }
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 
-  .errors {
-    margin-top: 10px;
-    font-family: var(--mono);
-    font-size: 11.5px;
-    color: var(--chr-fg);
-  }
-  .errors div { margin-top: 2px; }
+.hero-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  max-width: 480px;
+  margin: 0 auto 52px;
+  animation: fadeUp 0.7s var(--ease) 0.24s both;
+}
+@media (max-width: 480px) {
+  .hero-actions { grid-template-columns: 1fr; }
+}
 
-  /* ---------- zigzag visualization ---------- */
-  .zigzag-card {
-    padding: 22px 18px 18px;
-  }
-  .zigzag-wrap {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    margin: 0 -18px;
-    padding: 0 18px;
-  }
-  .zigzag-svg {
-    display: block;
-    min-width: 480px;
-    width: 100%;
-    height: auto;
-  }
-  .zigzag-svg .grid-line { stroke: var(--rule); stroke-width: 1; }
-  .zigzag-svg .path-line { stroke: var(--ink-2); stroke-width: 1.25; fill: none; opacity: 0.4; }
-  .zigzag-svg .pos-label { fill: var(--muted); font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.04em; }
-  .zigzag-svg .row-label { fill: var(--muted); font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.08em; text-anchor: end; }
-  .zigzag-svg .cell rect { rx: 4; }
-  .zigzag-svg .cell text { fill: currentColor; font-family: var(--mono); font-size: 10px; font-weight: 500; text-anchor: middle; dominant-baseline: central; }
-  .zigzag-svg .cell.b { color: var(--bin-fg); }
-  .zigzag-svg .cell.d { color: var(--dec-fg); }
-  .zigzag-svg .cell.c { color: var(--chr-fg); }
-  .zigzag-svg .cell.b rect { fill: var(--bin-bg); }
-  .zigzag-svg .cell.d rect { fill: var(--dec-bg); }
-  .zigzag-svg .cell.c rect { fill: var(--chr-bg); }
+.action-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 22px 20px 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  text-align: left;
+  overflow: hidden;
+  transition: transform 0.22s var(--ease), border-color 0.22s, box-shadow 0.22s;
+  font-family: var(--ui);
+}
+.action-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  border-radius: var(--radius-lg);
+  transition: opacity 0.22s;
+}
+.action-card:hover { transform: translateY(-3px); }
+.action-card:hover::after { opacity: 1; }
+.action-card:active { transform: translateY(-1px); }
 
-  .legend {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px 18px;
-    margin-top: 16px;
-    font-family: var(--mono);
-    font-size: 11.5px;
-    color: var(--ink-2);
-  }
-  .legend .it { display: inline-flex; align-items: center; gap: 7px; }
-  .legend .sw {
-    width: 14px; height: 14px;
-    border-radius: 3px;
-    display: inline-block;
-    font-size: 9px;
-    font-weight: 600;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .legend .sw.b { background: var(--bin-bg); color: var(--bin-fg); }
-  .legend .sw.d { background: var(--dec-bg); color: var(--dec-fg); }
-  .legend .sw.c { background: var(--chr-bg); color: var(--chr-fg); }
+.encode-card::after { background: linear-gradient(155deg, var(--enc-bg) 0%, transparent 70%); }
+.encode-card:hover  { border-color: var(--enc); box-shadow: 0 0 28px var(--enc-glow); }
 
-  /* ---------- caveat ---------- */
-  .caveat {
-    margin-top: 32px;
-    padding: 18px 20px;
-    border-top: 1px solid var(--rule);
-    color: var(--muted);
-    font-size: 13px;
-    line-height: 1.6;
-    background: transparent;
-  }
-  .caveat strong {
-    color: var(--ink-2);
-    font-weight: 500;
-  }
+.decode-card::after { background: linear-gradient(155deg, var(--deco-bg) 0%, transparent 70%); }
+.decode-card:hover  { border-color: var(--deco); box-shadow: 0 0 28px var(--deco-glow); }
 
-  /* ---------- footer ---------- */
-  footer {
-    margin-top: 40px;
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--muted);
-    text-align: center;
-    letter-spacing: 0.02em;
-  }
-  footer span { opacity: 0.6; }
+.card-icon { font-size: 28px; margin-bottom: 10px; position: relative; z-index: 1; }
+.card-label {
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  position: relative;
+  z-index: 1;
+  margin-bottom: 4px;
+}
+.encode-card .card-label { color: var(--enc-2); }
+.decode-card .card-label { color: var(--deco-2); }
+.card-desc {
+  font-size: 12.5px;
+  color: var(--ink-3);
+  line-height: 1.4;
+  position: relative;
+  z-index: 1;
+}
+.card-arrow {
+  position: absolute;
+  bottom: 18px;
+  right: 18px;
+  font-size: 18px;
+  color: var(--ink-3);
+  transition: transform 0.2s var(--ease), color 0.2s;
+  z-index: 1;
+}
+.action-card:hover .card-arrow {
+  transform: translateX(4px);
+  color: var(--ink-2);
+}
 
-  /* accessibility */
-  .sr-only {
-    position: absolute;
-    width: 1px; height: 1px;
-    padding: 0; margin: -1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-    white-space: nowrap;
-    border: 0;
-  }
+.scroll-hint {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-3);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  animation: fadeUp 0.7s var(--ease) 0.36s both;
+}
+.scroll-chevron {
+  width: 16px; height: 16px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  animation: bob 2s ease-in-out infinite;
+}
+@keyframes bob {
+  0%, 100% { transform: rotate(45deg) translate(0,0); opacity: 0.35; }
+  50%       { transform: rotate(45deg) translate(2px,2px); opacity: 0.85; }
+}
 
-  *:focus-visible {
-    outline: 2px solid var(--ink);
-    outline-offset: 2px;
-  }
+/* ============================================================
+   TOOL PANEL
+   ============================================================ */
+.tool-panel {
+  padding: 40px 24px 72px;
+  background: var(--bg-2);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.tool-inner {
+  max-width: 620px;
+  margin: 0 auto;
+}
+
+/* Tabs */
+.mode-tabs {
+  display: flex;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  padding: 4px;
+  margin-bottom: 34px;
+}
+.mode-tab {
+  flex: 1;
+  padding: 10px 18px;
+  font-family: var(--ui);
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink-3);
+  background: transparent;
+  border: none;
+  border-radius: 100px;
+  cursor: pointer;
+  transition: all 0.2s var(--ease);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.mode-tab.enc-active {
+  background: var(--enc-bg);
+  color: var(--enc-2);
+  box-shadow: inset 0 0 0 1px rgba(124,90,240,0.3);
+}
+.mode-tab.dec-active {
+  background: var(--deco-bg);
+  color: var(--deco-2);
+  box-shadow: inset 0 0 0 1px rgba(15,184,134,0.3);
+}
+.mode-tab:not(.enc-active):not(.dec-active):hover {
+  color: var(--ink-2);
+  background: var(--surface-2);
+}
+.tab-icon { font-size: 15px; }
+
+/* Keyword */
+.keyword-block { margin-bottom: 30px; }
+
+.fl {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-3);
+  margin-bottom: 8px;
+  user-select: none;
+}
+
+.fi {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 15px;
+  font-family: var(--mono);
+  font-size: 15px;
+  color: var(--ink);
+  transition: border-color 0.18s, box-shadow 0.18s;
+}
+.fi:focus {
+  outline: none;
+  border-color: var(--enc);
+  box-shadow: 0 0 0 3px var(--enc-glow);
+}
+.fi::placeholder { color: var(--ink-3); opacity: 0.6; }
+
+.key-strip {
+  margin-top: 10px;
+  font-family: var(--mono);
+  font-size: 12px;
+  overflow-x: auto;
+  white-space: nowrap;
+  padding-bottom: 2px;
+  min-height: 28px;
+}
+.key-strip::-webkit-scrollbar { height: 3px; }
+.key-strip::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.kk {
+  display: inline-block;
+  padding: 3px 9px;
+  margin-right: 5px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--ink-2);
+}
+.kk b { font-weight: 600; color: var(--ink); }
+.kk span { color: var(--ink-3); margin-left: 4px; }
+.nokey {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--chr-fg);
+  background: var(--chr-bg);
+  padding: 4px 10px;
+  border-radius: 100px;
+}
+
+/* Mode panels */
+.mode-panel { display: none; }
+.mode-panel.active { display: block; }
+
+/* Textarea */
+.fta {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 13px 15px;
+  font-family: var(--mono);
+  font-size: 14px;
+  color: var(--ink);
+  line-height: 1.6;
+  min-height: 96px;
+  resize: vertical;
+  transition: border-color 0.18s, box-shadow 0.18s;
+}
+.fta:focus {
+  outline: none;
+  border-color: var(--enc);
+  box-shadow: 0 0 0 3px var(--enc-glow);
+}
+#decodePanel .fta:focus {
+  border-color: var(--deco);
+  box-shadow: 0 0 0 3px var(--deco-glow);
+}
+.fta::placeholder { color: var(--ink-3); opacity: 0.55; }
+
+/* Shift display */
+.shift-bar {
+  margin: 14px 0;
+  padding: 11px 15px 11px 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border-2);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  transition: border-left-color 0.18s;
+}
+.shift-bar:focus-within { border-left-color: var(--enc); }
+.shift-lbl {
+  display: block;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-3);
+  margin-bottom: 5px;
+  user-select: none;
+}
+.shift-hint {
+  text-transform: none;
+  letter-spacing: 0;
+  font-style: italic;
+  color: var(--ink-3);
+}
+.shift-val {
+  font-family: var(--mono);
+  font-size: 14px;
+  color: var(--ink);
+  letter-spacing: 0.03em;
+}
+.shift-input {
+  display: block;
+  width: 100%;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  resize: none;
+  overflow: hidden;
+  font-family: var(--mono);
+  font-size: 14px;
+  color: var(--ink);
+  letter-spacing: 0.03em;
+  line-height: 1.5;
+  min-height: 1.5em;
+  caret-color: var(--ink);
+}
+.shift-input::placeholder { color: var(--ink-3); opacity: 0.45; }
+
+/* Output */
+.out-label {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-3);
+  margin-bottom: 9px;
+}
+.out-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 15px;
+  min-height: 58px;
+}
+.out-tokens {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 4px;
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.7;
+}
+.token {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 6px;
+  letter-spacing: 0.02em;
+}
+.token::before {
+  content: attr(data-fmt);
+  font-size: 8px;
+  font-weight: 600;
+  margin-right: 7px;
+  opacity: 0.55;
+  letter-spacing: 0.07em;
+}
+.token.b { background: var(--bin-bg); color: var(--bin-fg); }
+.token.d { background: var(--dec-bg); color: var(--dec-fg); }
+.token.c { background: var(--chr-bg); color: var(--chr-fg); }
+.token.err { background: transparent; color: var(--chr-fg); border: 1px dashed var(--chr-fg); }
+.sep { color: var(--ink-3); opacity: 0.35; user-select: none; font-family: var(--mono); margin: 0 1px; }
+.empty-out { color: var(--ink-3); font-family: var(--mono); font-size: 14px; }
+.recovered {
+  font-family: var(--mono);
+  font-size: 16px;
+  color: var(--ink);
+  letter-spacing: 0.02em;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+.recovered .q { color: var(--chr-fg); background: var(--chr-bg); padding: 0 4px; border-radius: 3px; }
+.errors { margin-top: 8px; font-family: var(--mono); font-size: 11px; color: var(--chr-fg); }
+.errors div { margin-top: 2px; }
+
+/* Buttons */
+.action-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.copy-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--ink-2);
+  border-radius: 8px;
+  padding: 9px 16px;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+.copy-btn:hover { border-color: var(--enc); color: var(--enc-2); background: var(--enc-bg); }
+.copy-btn.copied { color: var(--dec-fg); border-color: var(--dec-fg); background: var(--dec-bg); }
+
+.switch-btn {
+  background: none;
+  border: none;
+  color: var(--ink-3);
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  padding: 8px 0;
+  transition: color 0.18s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.switch-btn:hover { color: var(--ink-2); }
+
+.field-group { margin-bottom: 0; }
+
+/* ============================================================
+   HOW IT WORKS
+   ============================================================ */
+.howto {
+  padding: 88px 24px 88px;
+}
+.howto-inner {
+  max-width: 620px;
+  margin: 0 auto;
+}
+.section-eyebrow {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--enc-2);
+  margin-bottom: 12px;
+}
+.howto-heading {
+  font-size: clamp(30px, 6vw, 42px);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.08;
+  margin-bottom: 52px;
+  color: var(--ink);
+}
+
+.steps { display: flex; flex-direction: column; }
+.step {
+  display: flex;
+  gap: 22px;
+  padding: 28px 0;
+  border-top: 1px solid var(--border);
+}
+.step:last-child { border-bottom: 1px solid var(--border); }
+.step-num {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--enc-2);
+  padding-top: 3px;
+  flex-shrink: 0;
+  width: 28px;
+}
+.step-body h3 {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin-bottom: 8px;
+}
+.step-body p {
+  font-size: 13.5px;
+  color: var(--ink-2);
+  line-height: 1.7;
+}
+.step-body code {
+  font-family: var(--mono);
+  font-size: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  padding: 1px 6px;
+  border-radius: 4px;
+  color: var(--ink);
+}
+.tag-b, .tag-d, .tag-c {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+.tag-b { background: var(--bin-bg); color: var(--bin-fg); }
+.tag-d { background: var(--dec-bg); color: var(--dec-fg); }
+.tag-c { background: var(--chr-bg); color: var(--chr-fg); }
+
+/* Zigzag viz */
+.zz-block {
+  margin: 48px 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px 24px 20px;
+  overflow: hidden;
+}
+.zz-title {
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-3);
+  margin-bottom: 20px;
+}
+.zigzag-wrap {
+  overflow-x: auto;
+  margin: 0 -24px;
+  padding: 0 24px;
+}
+.zigzag-svg {
+  display: block;
+  min-width: 480px;
+  width: 100%;
+  height: auto;
+}
+.zigzag-svg .grid-line { stroke: var(--border); stroke-width: 1; }
+.zigzag-svg .path-line { stroke: var(--ink-3); stroke-width: 1.5; fill: none; opacity: 0.5; }
+.zigzag-svg .pos-label { fill: var(--ink-3); font-family: var(--mono); font-size: 9.5px; }
+.zigzag-svg .row-label { fill: var(--ink-3); font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.07em; text-anchor: end; }
+.zigzag-svg .cell text { fill: currentColor; font-family: var(--mono); font-size: 10px; font-weight: 500; text-anchor: middle; dominant-baseline: central; }
+.zigzag-svg .cell.b { color: var(--bin-fg); }
+.zigzag-svg .cell.d { color: var(--dec-fg); }
+.zigzag-svg .cell.c { color: var(--chr-fg); }
+.zigzag-svg .cell.b rect { fill: var(--bin-bg); }
+.zigzag-svg .cell.d rect { fill: var(--dec-bg); }
+.zigzag-svg .cell.c rect { fill: var(--chr-bg); }
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 22px;
+  margin-top: 18px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--ink-2);
+}
+.leg-item { display: flex; align-items: center; gap: 8px; }
+.leg-sw {
+  width: 18px; height: 18px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 600;
+}
+.leg-sw.b { background: var(--bin-bg); color: var(--bin-fg); }
+.leg-sw.d { background: var(--dec-bg); color: var(--dec-fg); }
+.leg-sw.c { background: var(--chr-bg); color: var(--chr-fg); }
+
+/* Caveat */
+.caveat {
+  padding: 18px 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 13px;
+  color: var(--ink-2);
+  line-height: 1.65;
+}
+.caveat strong { color: var(--ink); font-weight: 600; }
+
+/* Footer */
+.footer {
+  border-top: 1px solid var(--border);
+  padding: 28px 24px;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  letter-spacing: 0.04em;
+}
+
+/* Accessibility */
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+*:focus-visible { outline: 2px solid var(--enc); outline-offset: 2px; }
 </style>
 </head>
 <body>
 
-<div class="wrap">
-
-  <header class="head">
-    <h1><span class="dot" aria-hidden="true"></span>Zigzag</h1>
-    <div style="display:flex; align-items:center; gap:12px;">
-      <span class="meta">v1 · client-side only</span>
-      <button class="theme-btn" id="themeBtn" type="button" aria-label="toggle theme">auto</button>
+<!-- ===========================  NAV  =========================== -->
+<header class="nav">
+  <div class="nav-inner">
+    <button class="nav-logo" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="Scroll to top">
+      <span class="logo-gem" aria-hidden="true"></span>
+      Donas' Zigzag
+    </button>
+    <div class="nav-right">
+      <span class="nav-meta">v1 · client-side only</span>
+      <button class="theme-btn" id="themeBtn" type="button" aria-label="Toggle colour theme">dark</button>
     </div>
-  </header>
-
-  <p class="lede">A small cipher for <em>shared secrets</em>. Type a message, pick a keyword, hand the result to a friend who also knows the word.</p>
-  <p class="sub">Two pieces stack: a letter shift by your keyword (Vigenère), then a bouncing rotation through three formats <span style="color:var(--bin-fg);">binary</span>, <span style="color:var(--dec-fg);">decimal</span>, <span style="color:var(--chr-fg);">character</span>. Everything runs in this tab. Nothing leaves your device.</p>
-
-  <details class="explainer">
-    <summary><span>How this works</span></summary>
-    <div class="explainer-body">
-      <h4>Three faces of the same letter</h4>
-      <p>Every letter has three valid representations: its binary code (<code>01100001</code>), its decimal code (<code>97</code>), and itself (<code>a</code>). All three mean the same thing, they're just wearing different costumes.</p>
-
-      <h4>A bouncing pattern decides which costume</h4>
-      <p>The cipher rotates through <em>binary → decimal → character</em>, then bounces back: <em>character → decimal → binary</em>. The pattern repeats every six positions. Whichever costume shows up depends only on the letter's position in the message, not on the letter itself.</p>
-
-      <h4>A shared keyword shifts everything underneath</h4>
-      <p>Before formatting, each letter is bumped forward in the alphabet by an amount set by the keyword (a Vigenère shift). The keyword cycles too — <code>wave</code> applied to a 12-letter message reuses <code>w, a, v, e, w, a, v, e, w, a, v, e</code>. Without the keyword, a snooper sees the format pattern but only recovers shifted gibberish, not your real message.</p>
-
-      <h4>Decoding runs the same steps in reverse</h4>
-      <p>Read each token in its expected format to get a letter, then subtract the keyword's shift for that position. You're back to the original.</p>
-    </div>
-  </details>
-
-  <!-- ============ KEYWORD ============ -->
-  <section aria-labelledby="key-h">
-    <div class="section-head">
-      <span class="section-num">01</span>
-      <span class="section-title" id="key-h">Shared keyword</span>
-    </div>
-    <label for="keyword" class="sr-only">Keyword</label>
-    <input id="keyword" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="e.g. wave" value="wave" />
-    <div id="keyStrip" class="key-strip" aria-live="polite"></div>
-  </section>
-
-  <!-- ============ ENCODE ============ -->
-  <section aria-labelledby="enc-h">
-    <div class="section-head">
-      <span class="section-num">02</span>
-      <span class="section-title" id="enc-h">Encode</span>
-    </div>
-
-    <label for="plain" class="field-label">Plaintext</label>
-    <textarea id="plain" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="type a message — letters get shifted, all chars get formatted">hello</textarea>
-
-    <div class="shift-row" aria-live="polite">
-      <span class="lbl">After shift</span>
-      <span class="out" id="shifted">—</span>
-    </div>
-
-    <label for="encOut" class="field-label">Ciphertext</label>
-    <div class="output-block" id="encOut" aria-live="polite">
-      <div class="output-tokens" id="encTokens"></div>
-    </div>
-    <div class="copy-row">
-      <button id="copyBtn" class="copy-btn" type="button">Copy ciphertext</button>
-    </div>
-  </section>
-
-  <!-- ============ ZIGZAG VIZ ============ -->
-  <section class="zigzag-card" aria-labelledby="zz-h">
-    <div class="section-head">
-      <span class="section-num">03</span>
-      <span class="section-title" id="zz-h">The zigzag</span>
-    </div>
-    <div class="zigzag-wrap" role="img" aria-label="Format at each position: B D C C D B repeating every six positions, drawn as a zigzag path.">
-      <svg class="zigzag-svg" viewBox="0 0 600 180" preserveAspectRatio="xMidYMid meet">
-        <!-- row guides -->
-        <line class="grid-line" x1="60" y1="40" x2="580" y2="40"></line>
-        <line class="grid-line" x1="60" y1="90" x2="580" y2="90"></line>
-        <line class="grid-line" x1="60" y1="140" x2="580" y2="140"></line>
-
-        <!-- row labels -->
-        <text class="row-label" x="52" y="44">B · BINARY</text>
-        <text class="row-label" x="52" y="94">D · DECIMAL</text>
-        <text class="row-label" x="52" y="144">C · CHAR</text>
-
-        <!-- zigzag path connecting the cells -->
-        <polyline class="path-line" points="
-          80,40
-          120,90
-          160,140
-          200,140
-          240,90
-          280,40
-          320,40
-          360,90
-          400,140
-          440,140
-          480,90
-          520,40
-        "></polyline>
-
-        <!-- cells generated by script -->
-        <g id="zzCells"></g>
-
-        <!-- position labels -->
-        <g id="zzPos"></g>
-      </svg>
-    </div>
-    <div class="legend">
-      <span class="it"><span class="sw b">B</span> binary  8-bit ASCII</span>
-      <span class="it"><span class="sw d">D</span> decimal  ASCII code</span>
-      <span class="it"><span class="sw c">C</span> character  as-is</span>
-    </div>
-  </section>
-
-  <!-- ============ DECODE ============ -->
-  <section aria-labelledby="dec-h">
-    <div class="section-head">
-      <span class="section-num">04</span>
-      <span class="section-title" id="dec-h">Decode</span>
-    </div>
-
-    <label for="cipher" class="field-label">Ciphertext (pipe-separated)</label>
-    <textarea id="cipher" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="01100100 | 101 | g | p | 107">01100100 | 101 | g | p | 107</textarea>
-
-    <div class="shift-row" aria-live="polite">
-      <label for="decShifted" class="lbl">After shift <span class="lbl-hint">· edit to decode from here</span></label>
-      <textarea id="decShifted" class="shift-input" rows="1" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="—"></textarea>
-    </div>
-
-    <label for="decOut" class="field-label">Recovered plaintext</label>
-    <div class="output-block" id="decOut" aria-live="polite">
-      <div class="recovered" id="decText">—</div>
-      <div class="errors" id="decErrors"></div>
-    </div>
-  </section>
-
-  <div class="caveat">
-    <strong>About the security.</strong>
-    This is puzzle-grade, not bank-grade. Short keys are vulnerable to Kasiski analysis once your keyword length is found, the shift collapses to a series of Caesar ciphers you can crack with letter frequency. True one-time-pad strength requires a key as long as the message and never reused. Real cryptography also solves the key-distribution problem this app sidesteps: you and your friend have to share the keyword somehow. Use Zigzag for notes, puzzles, and trivia. Use it to protect anything that matters from chats to secret conversations etc.
   </div>
+</header>
 
-  <footer><span>Built to be read, built to be trusted.</span></footer>
+<!-- ===========================  HERO  =========================== -->
+<section class="hero" id="hero">
+  <div class="hero-inner">
+    <div class="hero-badge">
+      <span class="hero-badge-dot" aria-hidden="true"></span>
+      Cipher tool · Nothing leaves your device
+    </div>
 
-</div>
+    <h1 class="hero-title">Donas' Zigzag</h1>
+
+    <p class="hero-sub">
+      A small cipher for shared secrets. Shift letters with a keyword, disguise them in three formats. Send the mystery let your friend decode it.
+    </p>
+
+    <div class="hero-actions">
+      <button class="action-card encode-card" onclick="selectMode('encode')">
+        <div class="card-icon" aria-hidden="true">🔒</div>
+        <div class="card-label">Encode</div>
+        <div class="card-desc">I have a message to hide</div>
+        <span class="card-arrow" aria-hidden="true">→</span>
+      </button>
+      <button class="action-card decode-card" onclick="selectMode('decode')">
+        <div class="card-icon" aria-hidden="true">🔓</div>
+        <div class="card-label">Decode</div>
+        <div class="card-desc">I got a message to read</div>
+        <span class="card-arrow" aria-hidden="true">→</span>
+      </button>
+    </div>
+
+    <div class="scroll-hint" aria-hidden="true">
+      <span>or scroll to explore</span>
+      <span class="scroll-chevron"></span>
+    </div>
+  </div>
+</section>
+
+<!-- ===========================  TOOL  =========================== -->
+<section class="tool-panel" id="tool">
+  <div class="tool-inner">
+
+    <!-- Mode tabs -->
+    <div class="mode-tabs" role="tablist" aria-label="Cipher mode">
+      <button class="mode-tab" id="encodeTab" role="tab"
+              aria-selected="true" onclick="setMode('encode')">
+        <span class="tab-icon" aria-hidden="true">🔒</span> Encode
+      </button>
+      <button class="mode-tab" id="decodeTab" role="tab"
+              aria-selected="false" onclick="setMode('decode')">
+        <span class="tab-icon" aria-hidden="true">🔓</span> Decode
+      </button>
+    </div>
+
+    <!-- Shared keyword -->
+    <div class="keyword-block">
+      <label class="fl" for="keyword">
+        <span aria-hidden="true">🗝</span> Shared keyword
+      </label>
+      <input id="keyword" type="text" class="fi"
+             autocomplete="off" autocapitalize="off" spellcheck="false"
+             placeholder="e.g. wave" value="wave" />
+      <div id="keyStrip" class="key-strip" aria-live="polite"></div>
+    </div>
+
+    <!-- ────  ENCODE PANEL  ──── -->
+    <div id="encodePanel" class="mode-panel active" role="tabpanel" aria-labelledby="encodeTab">
+
+      <div style="margin-bottom:14px;">
+        <label class="fl" for="plain">Your message</label>
+        <textarea id="plain" class="fta"
+                  autocomplete="off" autocapitalize="off" spellcheck="false"
+                  placeholder="Type your secret message here…">hello</textarea>
+      </div>
+
+      <div class="shift-bar" aria-live="polite">
+        <span class="shift-lbl">After keyword shift</span>
+        <span class="shift-val" id="shifted">—</span>
+      </div>
+
+      <div style="margin-top:14px;">
+        <div class="out-label">Ciphertext</div>
+        <div class="out-box" id="encOut" aria-live="polite">
+          <div class="out-tokens" id="encTokens"></div>
+        </div>
+        <div class="action-row">
+          <button id="copyBtn" class="copy-btn" type="button">Copy ciphertext</button>
+          <button class="switch-btn" onclick="setMode('decode')" aria-label="Switch to decode mode">
+            Switch to Decode →
+          </button>
+        </div>
+      </div>
+
+    </div><!-- /encodePanel -->
+
+    <!-- ────  DECODE PANEL  ──── -->
+    <div id="decodePanel" class="mode-panel" role="tabpanel" aria-labelledby="decodeTab">
+
+      <div style="margin-bottom:14px;">
+        <label class="fl" for="cipher">Ciphertext (pipe-separated)</label>
+        <textarea id="cipher" class="fta"
+                  autocomplete="off" autocapitalize="off" spellcheck="false"
+                  placeholder="01100100 | 101 | g | p | 107">01100100 | 101 | g | p | 107</textarea>
+      </div>
+
+      <div class="shift-bar" aria-live="polite">
+        <label for="decShifted" class="shift-lbl">
+          After unformat <span class="shift-hint">· edit to decode from here</span>
+        </label>
+        <textarea id="decShifted" class="shift-input" rows="1"
+                  autocomplete="off" autocapitalize="off" spellcheck="false"
+                  placeholder="—"></textarea>
+      </div>
+
+      <div style="margin-top:14px;">
+        <div class="out-label">Recovered message</div>
+        <div class="out-box" id="decOut" aria-live="polite">
+          <div class="recovered" id="decText">—</div>
+          <div class="errors" id="decErrors"></div>
+        </div>
+        <div class="action-row">
+          <button class="switch-btn" onclick="setMode('encode')" aria-label="Switch to encode mode">
+            ← Switch to Encode
+          </button>
+        </div>
+      </div>
+
+    </div><!-- /decodePanel -->
+
+  </div>
+</section>
+
+<!-- ========================  HOW IT WORKS  ======================== -->
+<section class="howto" id="howto">
+  <div class="howto-inner">
+
+    <div class="section-eyebrow">How it works</div>
+    <h2 class="howto-heading">Three tricks,<br>one cipher</h2>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">01</div>
+        <div class="step-body">
+          <h3>Three faces of the same letter</h3>
+          <p>Every character has three valid representations: binary (<code>01100001</code>), decimal (<code>97</code>), and itself (<code>a</code>). Same meaning, different costumes. Zigzag picks which one to show at each position in the message.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">02</div>
+        <div class="step-body">
+          <h3>A bouncing pattern picks the costume</h3>
+          <p>Each position is assigned a format: <span class="tag-b">B</span>&nbsp;binary → <span class="tag-d">D</span>&nbsp;decimal → <span class="tag-c">C</span>&nbsp;char → <span class="tag-c">C</span> → <span class="tag-d">D</span> → <span class="tag-b">B</span> — then repeats. The pattern zigzags up and down across the message, giving the cipher its name.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">03</div>
+        <div class="step-body">
+          <h3>A shared keyword shifts everything</h3>
+          <p>Before formatting, each letter is shifted along the alphabet by an amount set by the keyword a Vigenère cipher. The keyword cycles across the message. Without the keyword, you only recover shifted gibberish, not the real message.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">04</div>
+        <div class="step-body">
+          <h3>Decoding reverses the steps</h3>
+          <p>Parse each token back to a character using the expected format at that position, then subtract the keyword's shift. You're back to the original plaintext. You and your friend just need to share the keyword somehow that's the only secret.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Zigzag visualization -->
+    <div class="zz-block">
+      <div class="zz-title">The format pattern, visualised (first 12 positions)</div>
+      <div class="zigzag-wrap" role="img" aria-label="Format at each position: B D C C D B repeating every six positions, drawn as a zigzag path">
+        <svg class="zigzag-svg" viewBox="0 0 600 180" preserveAspectRatio="xMidYMid meet">
+          <line class="grid-line" x1="60" y1="40" x2="580" y2="40"></line>
+          <line class="grid-line" x1="60" y1="90" x2="580" y2="90"></line>
+          <line class="grid-line" x1="60" y1="140" x2="580" y2="140"></line>
+          <text class="row-label" x="52" y="44">B · BINARY</text>
+          <text class="row-label" x="52" y="94">D · DECIMAL</text>
+          <text class="row-label" x="52" y="144">C · CHAR</text>
+          <polyline class="path-line" points="
+            80,40 120,90 160,140 200,140 240,90 280,40
+            320,40 360,90 400,140 440,140 480,90 520,40
+          "></polyline>
+          <g id="zzCells"></g>
+          <g id="zzPos"></g>
+        </svg>
+      </div>
+      <div class="legend">
+        <span class="leg-item"><span class="leg-sw b">B</span> binary 8-bit ASCII</span>
+        <span class="leg-item"><span class="leg-sw d">D</span> decimal ASCII code</span>
+        <span class="leg-item"><span class="leg-sw c">C</span> character as-is</span>
+      </div>
+    </div>
+
+    <div class="caveat">
+      <strong>⚠ Puzzle-grade, not bank-grade.</strong>
+      Short keys are vulnerable to Kasiski analysis once the keyword length is found, the shift collapses to simple Caesar ciphers crackable by letter frequency. True security requires a key as long as the message, never reused. Use Zigzag for notes, puzzles, and trivia. Use it to protect anything that matters from chats to secret conversations etc.
+    </div>
+
+  </div>
+</section>
+
+<footer class="footer">Built to be read, built to be trusted.</footer>
 
 <script>
 "use strict";
 
 /* ============================================================
-   CIPHER CORE
+   CIPHER CORE  (unchanged logic from original)
    ============================================================ */
 
 const PATTERN = ["B","D","C","C","D","B"];
@@ -748,15 +1094,10 @@ function shiftFor(keywordClean, pos1) {
 
 function caesar(ch, amount, dir) {
   const code = ch.charCodeAt(0);
-  // wrap-safe modulo (add 26*100 so even big negatives become positive)
   const wrap = (n) => ((n % 26) + 26) % 26;
-  if (code >= 97 && code <= 122) {
-    return String.fromCharCode(wrap(code - 97 + amount * dir) + 97);
-  }
-  if (code >= 65 && code <= 90) {
-    return String.fromCharCode(wrap(code - 65 + amount * dir) + 65);
-  }
-  return ch; // pass through digits, punctuation, spaces
+  if (code >= 97 && code <= 122) return String.fromCharCode(wrap(code - 97 + amount * dir) + 97);
+  if (code >= 65 && code <= 90)  return String.fromCharCode(wrap(code - 65 + amount * dir) + 65);
+  return ch;
 }
 
 function encode(plain, keyword) {
@@ -778,27 +1119,18 @@ function encode(plain, keyword) {
 }
 
 function parseTokens(cipher) {
-  // Parses pipe-separated ciphertext into shifted-character form.
-  // Does NOT involve the keyword — this is the format-only step,
-  // shared by the decode pipeline and the after-shift mirror.
-  const out = [];
-  const errors = [];
-
+  const out = [], errors = [];
   if (cipher.trim() === "") return { chars: out, errors };
-
   const canonical = cipher.split(" | ");
   const tolerant  = cipher.split(/\s*\|\s*/);
   const raw = (canonical.length === tolerant.length) ? canonical : tolerant;
-
   if (raw.length && raw[0] === "") raw.shift();
   if (raw.length && raw[raw.length - 1] === "") raw.pop();
-
   for (let i = 0; i < raw.length; i++) {
     const pos = i + 1;
     const fmt = formatAt(pos);
     const tok = raw[i];
     let ch = null, ok = false;
-
     if (fmt === "B") {
       const t = tok.trim();
       if (/^[01]+$/.test(t) && t.length <= 16) {
@@ -811,11 +1143,10 @@ function parseTokens(cipher) {
         const code = parseInt(t, 10);
         if (code >= 0 && code <= 127) { ch = String.fromCharCode(code); ok = true; }
       }
-    } else { // C — preserve whitespace tokens
+    } else {
       if (tok.length === 1) { ch = tok; ok = true; }
       else if (tok.trim().length === 1) { ch = tok.trim(); ok = true; }
     }
-
     if (!ok) {
       errors.push({ pos, tok, expected: fmt });
       out.push({ pos, ch: "?", err: true, expected: fmt, tok });
@@ -827,44 +1158,68 @@ function parseTokens(cipher) {
 }
 
 function decode(cipher, keyword) {
-  // Full decode pipeline = parseTokens + Vigenère unshift.
   const parsed = parseTokens(cipher);
   const keyc = cleanKey(keyword);
   const out = [];
   for (const c of parsed.chars) {
-    if (c.err) {
-      out.push(c);
-    } else {
-      out.push({
-        pos: c.pos,
-        ch: caesar(c.ch, shiftFor(keyc, c.pos), -1),
-        err: false
-      });
-    }
+    if (c.err) { out.push(c); continue; }
+    out.push({ pos: c.pos, ch: caesar(c.ch, shiftFor(keyc, c.pos), -1), err: false });
   }
   return { chars: out, errors: parsed.errors };
 }
 
 /* ============================================================
-   DOM RENDERING
+   DOM REFS
    ============================================================ */
 
 const $ = (id) => document.getElementById(id);
-const keyInput = $("keyword");
-const plainInput = $("plain");
+const keyInput    = $("keyword");
+const plainInput  = $("plain");
 const cipherInput = $("cipher");
-const keyStrip = $("keyStrip");
-const shiftedEl = $("shifted");
-const encTokens = $("encTokens");
-const decShifted = $("decShifted");
-const decText = $("decText");
-const decErrors = $("decErrors");
-const copyBtn = $("copyBtn");
+const keyStrip    = $("keyStrip");
+const shiftedEl   = $("shifted");
+const encTokens   = $("encTokens");
+const decShifted  = $("decShifted");
+const decText     = $("decText");
+const decErrors   = $("decErrors");
+const copyBtn     = $("copyBtn");
 
-// Decode panel can be driven from either the ciphertext box or the
-// after-shift box. We track whichever one the user last touched so the
-// keyword (and re-render) flows from the right source.
 let decodeSource = "cipher";
+
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
+
+function selectMode(mode) {
+  setMode(mode);
+  const toolEl = $("tool");
+  const y = toolEl.getBoundingClientRect().top + window.scrollY - 62;
+  window.scrollTo({ top: y, behavior: "smooth" });
+}
+
+function setMode(mode) {
+  const encPanel = $("encodePanel");
+  const decPanel = $("decodePanel");
+  const encTab   = $("encodeTab");
+  const decTab   = $("decodeTab");
+
+  if (mode === "encode") {
+    encPanel.classList.add("active");   decPanel.classList.remove("active");
+    encTab.classList.add("enc-active"); decTab.classList.remove("dec-active");
+    encTab.setAttribute("aria-selected", "true");
+    decTab.setAttribute("aria-selected", "false");
+  } else {
+    decPanel.classList.add("active");   encPanel.classList.remove("active");
+    decTab.classList.add("dec-active"); encTab.classList.remove("enc-active");
+    decTab.setAttribute("aria-selected", "true");
+    encTab.setAttribute("aria-selected", "false");
+  }
+  renderAll();
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
 
 function autoGrow(el) {
   el.style.height = "auto";
@@ -872,8 +1227,7 @@ function autoGrow(el) {
 }
 
 function renderKeyStrip() {
-  const kw = keyInput.value;
-  const cleaned = cleanKey(kw);
+  const cleaned = cleanKey(keyInput.value);
   keyStrip.innerHTML = "";
   if (!cleaned.length) {
     const b = document.createElement("span");
@@ -896,14 +1250,8 @@ function renderEncode() {
   const plain = plainInput.value;
   const tokens = encode(plain, keyInput.value);
 
-  // shifted plaintext
-  if (!plain.length) {
-    shiftedEl.textContent = "—";
-  } else {
-    shiftedEl.textContent = tokens.map(t => t.shifted).join("");
-  }
+  shiftedEl.textContent = plain.length ? tokens.map(t => t.shifted).join("") : "—";
 
-  // tokens
   encTokens.innerHTML = "";
   if (!plain.length) {
     const e = document.createElement("span");
@@ -928,21 +1276,15 @@ function renderEncode() {
 }
 
 function ciphertextPlain() {
-  // produce the canonical pipe-separated form for copy
-  const tokens = encode(plainInput.value, keyInput.value);
-  return tokens.map(t => t.text).join(" | ");
+  return encode(plainInput.value, keyInput.value).map(t => t.text).join(" | ");
 }
 
 function renderDecode() {
   decText.innerHTML = "";
   decErrors.innerHTML = "";
 
-  // Step 1: get the "shifted" intermediate, either by parsing cipher
-  // tokens (default) or by reading what the user typed into the
-  // editable after-shift box.
-  let shiftedText = "";
-  let errors = [];
-  let errorPositions = new Set(); // positions where the source was malformed
+  let shiftedText = "", errors = [];
+  const errorPositions = new Set();
 
   if (decodeSource === "cipher") {
     const parsed = parseTokens(cipherInput.value);
@@ -953,41 +1295,31 @@ function renderDecode() {
     }
     shiftedText = s;
     errors = parsed.errors;
-    // mirror into the editable box (does NOT trigger its input handler)
     decShifted.value = s;
     autoGrow(decShifted);
   } else {
     shiftedText = decShifted.value;
   }
 
-  // Step 2: shifted → plain via Vigenère unshift
-  if (!shiftedText.length) {
-    decText.textContent = "—";
-    return;
-  }
+  if (!shiftedText.length) { decText.textContent = "—"; return; }
 
   const keyc = cleanKey(keyInput.value);
   for (let i = 0; i < shiftedText.length; i++) {
     const pos = i + 1;
-    const ch = shiftedText[i];
+    const ch  = shiftedText[i];
     if (errorPositions.has(pos)) {
       const q = document.createElement("span");
-      q.className = "q";
-      q.textContent = "?";
+      q.className = "q"; q.textContent = "?";
       decText.appendChild(q);
     } else {
-      const plain = caesar(ch, shiftFor(keyc, pos), -1);
-      decText.appendChild(document.createTextNode(plain));
+      decText.appendChild(document.createTextNode(caesar(ch, shiftFor(keyc, pos), -1)));
     }
   }
 
-  // Step 3: surface any parse errors (only relevant when source = cipher)
   if (decodeSource === "cipher" && errors.length) {
     for (const e of errors) {
       const d = document.createElement("div");
-      const kind = e.expected === "B" ? "binary"
-                 : e.expected === "D" ? "decimal"
-                 : "single character";
+      const kind = e.expected === "B" ? "binary" : e.expected === "D" ? "decimal" : "single character";
       d.textContent = `Could not decode #${e.pos} "${e.tok}" — expected ${kind}`;
       decErrors.appendChild(d);
     }
@@ -1005,11 +1337,8 @@ function renderAll() {
    ============================================================ */
 
 function renderZigzag() {
-  const cells = document.getElementById("zzCells");
-  const posG = document.getElementById("zzPos");
-  cells.innerHTML = "";
-  posG.innerHTML = "";
-
+  const cells = $("zzCells"), posG = $("zzPos");
+  cells.innerHTML = ""; posG.innerHTML = "";
   const rowY = { B: 40, D: 90, C: 140 };
   const startX = 80, stepX = 40;
   for (let i = 0; i < 12; i++) {
@@ -1023,24 +1352,18 @@ function renderZigzag() {
     g.setAttribute("transform", `translate(${x - 12}, ${y - 11})`);
 
     const r = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-    r.setAttribute("width", "24");
-    r.setAttribute("height", "22");
-    r.setAttribute("rx", "4");
+    r.setAttribute("width", "24"); r.setAttribute("height", "22"); r.setAttribute("rx", "4");
     g.appendChild(r);
 
     const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    t.setAttribute("x", "12");
-    t.setAttribute("y", "11");
+    t.setAttribute("x", "12"); t.setAttribute("y", "11");
     t.textContent = fmt;
     g.appendChild(t);
-
     cells.appendChild(g);
 
-    // position number below the C row
     const pl = document.createElementNS("http://www.w3.org/2000/svg", "text");
     pl.setAttribute("class", "pos-label");
-    pl.setAttribute("x", x);
-    pl.setAttribute("y", 168);
+    pl.setAttribute("x", x); pl.setAttribute("y", 168);
     pl.setAttribute("text-anchor", "middle");
     pl.textContent = pos;
     posG.appendChild(pl);
@@ -1048,7 +1371,7 @@ function renderZigzag() {
 }
 
 /* ============================================================
-   COPY / THEME
+   COPY
    ============================================================ */
 
 copyBtn.addEventListener("click", async () => {
@@ -1056,99 +1379,82 @@ copyBtn.addEventListener("click", async () => {
   if (!text) return;
   try {
     await navigator.clipboard.writeText(text);
-    copyBtn.classList.add("copied");
-    copyBtn.textContent = "Copied";
-    setTimeout(() => {
-      copyBtn.classList.remove("copied");
-      copyBtn.textContent = "Copy ciphertext";
-    }, 1400);
   } catch {
-    // fallback: select + execCommand
     const ta = document.createElement("textarea");
     ta.value = text;
     document.body.appendChild(ta);
     ta.select();
     try { document.execCommand("copy"); } catch {}
     ta.remove();
-    copyBtn.textContent = "Copied";
-    setTimeout(() => { copyBtn.textContent = "Copy ciphertext"; }, 1400);
   }
+  copyBtn.classList.add("copied");
+  copyBtn.textContent = "Copied ✓";
+  setTimeout(() => {
+    copyBtn.classList.remove("copied");
+    copyBtn.textContent = "Copy ciphertext";
+  }, 1400);
 });
 
-/* theme: auto -> light -> dark -> auto */
-const themeBtn = document.getElementById("themeBtn");
-const themes = ["auto", "light", "dark"];
-let themeIdx = 0;
+/* ============================================================
+   THEME
+   ============================================================ */
+
+const themeBtn = $("themeBtn");
+const themes   = ["dark","light","auto"];
+let themeIdx   = 0;
+
 function applyTheme() {
   const t = themes[themeIdx];
-  if (t === "auto") {
-    document.documentElement.removeAttribute("data-theme");
-  } else {
-    document.documentElement.setAttribute("data-theme", t);
-  }
+  if (t === "auto") document.documentElement.removeAttribute("data-theme");
+  else              document.documentElement.setAttribute("data-theme", t);
   themeBtn.textContent = t;
 }
+
 themeBtn.addEventListener("click", () => {
   themeIdx = (themeIdx + 1) % themes.length;
   applyTheme();
 });
 
 /* ============================================================
-   WIRE EVENTS
+   EVENTS
    ============================================================ */
 
 keyInput.addEventListener("input", renderAll);
-plainInput.addEventListener("input", () => { renderEncode(); });
+plainInput.addEventListener("input", renderEncode);
 cipherInput.addEventListener("input", () => { decodeSource = "cipher"; renderDecode(); });
 decShifted.addEventListener("input", () => { decodeSource = "shifted"; autoGrow(decShifted); renderDecode(); });
 
 /* ============================================================
-   SELF-TESTS (spec test cases)
+   SELF-TESTS
    ============================================================ */
 (function selfTest() {
   function enc(p, k) { return encode(p, k).map(t => t.text).join(" | "); }
   function dec(c, k) { return decode(c, k).chars.map(x => x.ch).join(""); }
-
   const cases = [
-    ["bad",    "",     "01100010 | 97 | d"],
-    ["bade",   "",     "01100010 | 97 | d | e"],
-    ["dbade",  "",     "01100100 | 98 | a | d | 101"],
-    ["hello",  "wave", "01100100 | 101 | g | p | 107"],
+    ["bad",   "",     "01100010 | 97 | d"],
+    ["bade",  "",     "01100010 | 97 | d | e"],
+    ["dbade", "",     "01100100 | 98 | a | d | 101"],
+    ["hello", "wave", "01100100 | 101 | g | p | 107"],
   ];
-  const results = cases.map(([p, k, expect]) => {
-    const got = enc(p, k);
-    return { p, k, expect, got, pass: got === expect };
-  });
-  // roundtrip on a tricky one
-  const secret = "secret message, 42!";
-  const k = "encrypt";
-  const roundtrip = dec(enc(secret, k), k);
-  results.push({ p: secret, k, expect: secret, got: roundtrip, pass: roundtrip === secret });
-
-  const allPass = results.every(r => r.pass);
-  if (!allPass) {
-    const fails = results.filter(r => !r.pass);
+  const results = cases.map(([p, k, expect]) => ({ p, k, expect, got: enc(p, k), pass: enc(p, k) === expect }));
+  const secret = "secret message, 42!", k = "encrypt";
+  const rt = dec(enc(secret, k), k);
+  results.push({ p: secret, k, expect: secret, got: rt, pass: rt === secret });
+  const fails = results.filter(r => !r.pass);
+  if (fails.length) {
     console.warn(`Zigzag self-test: ${fails.length} of ${results.length} failed.`);
-    fails.forEach(f => {
-      console.warn(
-        `  plaintext=${JSON.stringify(f.p)}  key=${JSON.stringify(f.k)}\n` +
-        `    expected: ${JSON.stringify(f.expect)}\n` +
-        `    got:      ${JSON.stringify(f.got)}`
-      );
-    });
+    fails.forEach(f => console.warn(`  plain=${JSON.stringify(f.p)} key=${JSON.stringify(f.k)}\n  expected: ${f.expect}\n  got: ${f.got}`));
   } else {
-    console.log("Zigzag self-tests: all", results.length, "pass.");
+    console.log("Zigzag self-tests: all", results.length, "pass ✓");
   }
 })();
 
 /* ============================================================
    BOOT
    ============================================================ */
-
 renderZigzag();
 renderAll();
-
+setMode("encode");
 </script>
-
 </body>
 </html>
