@@ -590,13 +590,13 @@
   </header>
 
   <p class="lede">A small cipher for <em>shared secrets</em>. Type a message, pick a keyword, hand the result to a friend who also knows the word.</p>
-  <p class="sub">Two pieces stack: a letter shift by your keyword (Vigenère), then a bouncing rotation through three formats — <span style="color:var(--bin-fg);">binary</span>, <span style="color:var(--dec-fg);">decimal</span>, <span style="color:var(--chr-fg);">character</span>. Everything runs in this tab. Nothing leaves your device.</p>
+  <p class="sub">Two pieces stack: a letter shift by your keyword (Vigenère), then a bouncing rotation through three formats <span style="color:var(--bin-fg);">binary</span>, <span style="color:var(--dec-fg);">decimal</span>, <span style="color:var(--chr-fg);">character</span>. Everything runs in this tab. Nothing leaves your device.</p>
 
   <details class="explainer">
     <summary><span>How this works</span></summary>
     <div class="explainer-body">
       <h4>Three faces of the same letter</h4>
-      <p>Every letter has three valid representations: its binary code (<code>01100001</code>), its decimal code (<code>97</code>), and itself (<code>a</code>). All three mean the same thing — they're just wearing different costumes.</p>
+      <p>Every letter has three valid representations: its binary code (<code>01100001</code>), its decimal code (<code>97</code>), and itself (<code>a</code>). All three mean the same thing, they're just wearing different costumes.</p>
 
       <h4>A bouncing pattern decides which costume</h4>
       <p>The cipher rotates through <em>binary → decimal → character</em>, then bounces back: <em>character → decimal → binary</em>. The pattern repeats every six positions. Whichever costume shows up depends only on the letter's position in the message, not on the letter itself.</p>
@@ -686,9 +686,9 @@
       </svg>
     </div>
     <div class="legend">
-      <span class="it"><span class="sw b">B</span> binary — 8-bit ASCII</span>
-      <span class="it"><span class="sw d">D</span> decimal — ASCII code</span>
-      <span class="it"><span class="sw c">C</span> character — as-is</span>
+      <span class="it"><span class="sw b">B</span> binary  8-bit ASCII</span>
+      <span class="it"><span class="sw d">D</span> decimal  ASCII code</span>
+      <span class="it"><span class="sw c">C</span> character  as-is</span>
     </div>
   </section>
 
@@ -716,10 +716,10 @@
 
   <div class="caveat">
     <strong>About the security.</strong>
-    This is puzzle-grade, not bank-grade. Short keys are vulnerable to Kasiski analysis — once your keyword length is found, the shift collapses to a series of Caesar ciphers you can crack with letter frequency. True one-time-pad strength requires a key as long as the message and never reused. Real cryptography also solves the key-distribution problem this app sidesteps: you and your friend have to share the keyword somehow. Use Zigzag for notes, puzzles, and trivia. Don't use it to protect anything that matters.
+    This is puzzle-grade, not bank-grade. Short keys are vulnerable to Kasiski analysis once your keyword length is found, the shift collapses to a series of Caesar ciphers you can crack with letter frequency. True one-time-pad strength requires a key as long as the message and never reused. Real cryptography also solves the key-distribution problem this app sidesteps: you and your friend have to share the keyword somehow. Use Zigzag for notes, puzzles, and trivia. Use it to protect anything that matters from chats to secret conversations etc.
   </div>
 
-  <footer><span>Built to be read, not to be trusted.</span></footer>
+  <footer><span>Built to be read, built to be trusted.</span></footer>
 
 </div>
 
